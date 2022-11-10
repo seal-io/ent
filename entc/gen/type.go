@@ -1961,7 +1961,6 @@ var (
 		"Mean",
 		"Min",
 		"Sum",
-		"Policy",
 		"Query",
 		"Value",
 	)
