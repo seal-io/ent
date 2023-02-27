@@ -64,7 +64,7 @@ in the LICENSE file in the root directory of this source tree.
 				{{- if $e.M2M }}
 					// {{ $e.PKConstant }} and {{ $e.ColumnConstant }}2 are the table columns denoting the
 					// primary key for the {{ $e.Name }} relation (M2M).
-					{{ $e.PKConstant }} = []string{"{{ index $e.Rel.Columns 0 }}", "{{ index $e.Rel.Columns 1 }}"}
+					{{ $e.PKConstant }} = []string{ {{ printf "\"%s\"" (join $e.Rel.Columns "\",\"")}} }
 				{{- end }}
 			{{- end }}
 		)

@@ -40,9 +40,8 @@ type Annotation struct {
 //			field.ID("user_id", "tweet_id"),
 //		}
 //	}
-//
-func ID(first, second string, fields ...string) *Annotation {
-	return &Annotation{ID: append([]string{first, second}, fields...)}
+func ID(first, second string, others ...string) *Annotation {
+	return &Annotation{ID: append([]string{first, second}, others...)}
 }
 
 // Name describes the annotation name.

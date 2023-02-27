@@ -568,8 +568,8 @@ func (g *Graph) edgeSchemas() error {
 			// Edge schema contains a composite primary key, and it was not resolved in previous iterations.
 			if ant := fieldAnnotate(edgeT.Annotations); ant != nil && len(ant.ID) > 0 && len(edgeT.EdgeSchema.ID) == 0 {
 				r1, r2 := e.Rel.Columns[0], e.Rel.Columns[1]
-				if len(ant.ID) != 2 || ant.ID[0] != r1 || ant.ID[1] != r2 {
-					return fmt.Errorf(`edge schema primary key can only be defined on "id" or (%q, %q) in the same order`, r1, r2)
+				if len(ant.ID) < 2 || ant.ID[0] != r1 || ant.ID[1] != r2 {
+					return fmt.Errorf(`edge schema primary key can only be defined on "id" or (%q, %q, ...) in the same order`, r1, r2)
 				}
 				edgeT.ID = nil
 				for _, f := range ant.ID {
@@ -581,7 +581,7 @@ func (g *Graph) edgeSchemas() error {
 			}
 			hasI := func() bool {
 				for _, idx := range edgeT.Indexes {
-					if !idx.Unique || len(idx.Columns) != 2 {
+					if !idx.Unique || len(idx.Columns) < 2 {
 						continue
 					}
 					c1, c2 := idx.Columns[0], idx.Columns[1]
@@ -748,7 +748,7 @@ func addCompositePK(t *schema.Table, n *Type) error {
 	columns := make([]*schema.Column, 0, len(n.EdgeSchema.ID))
 	for _, id := range n.EdgeSchema.ID {
 		for _, f := range n.Fields {
-			if !f.IsEdgeField() || id != f {
+			if id != f {
 				continue
 			}
 			c, ok := t.Column(f.StorageKey())
