@@ -486,18 +486,12 @@ func (g *Graph) edgeSchemas() error {
 				}
 				e.Through = edgeT
 				edgeT.EdgeSchema.From = e
-				if to, from := edgeT.EdgeSchema.To, edgeT.EdgeSchema.From; to != nil && from.Ref != to {
-					return fmt.Errorf("mismtached edge.From(%q, %s.Type) and edge.To(%q, %s.Type) for edge schema %s", from.Name, from.Type.Name, to.Name, to.Type.Name, edgeT.Name)
-				}
 			default: // Assoc.
 				if edgeT.EdgeSchema.To != nil {
 					return fmt.Errorf("type %s is already used as an edge schema by other edge.To: %s.%s", edgeT.Name, edgeT.EdgeSchema.From.Name, edgeT.EdgeSchema.From.Owner.Name)
 				}
 				e.Through = edgeT
 				edgeT.EdgeSchema.To = e
-				if to, from := edgeT.EdgeSchema.To, edgeT.EdgeSchema.From; from != nil && from.Ref != to {
-					return fmt.Errorf("mismtached edge.To(%q, %s.Type) and edge.From(%q, %s.Type) for edge schema %s", from.Name, from.Type.Name, to.Name, to.Type.Name, edgeT.Name)
-				}
 			}
 			// Update both Assoc/To and Inverse/From
 			// relation tables to the edge schema table.
@@ -546,28 +540,21 @@ func (g *Graph) edgeSchemas() error {
 					ref = r
 				}
 			}
-			// Edges from src/dest table are always O2M. One row to many
-			// rows in the join table. Hence, a many-to-many relationship.
-			n.Edges = append(n.Edges, &Edge{
-				def:         &load.Edge{},
-				Name:        e.def.Through.N,
-				Type:        edgeT,
-				Inverse:     ref.Name,
-				Ref:         ref,
-				Owner:       n,
-				Optional:    true,
-				StructTag:   structTag(e.def.Through.N, ""),
-				Annotations: e.Annotations,
-				Rel: Relation{
-					Type:    O2M,
-					fk:      ref.Rel.fk,
-					Table:   ref.Rel.Table,
-					Columns: ref.Rel.Columns,
-				},
-			})
+			// Replace M2M edge to O2M edge.
+			var pRel = e.Rel
+			e.def = &load.Edge{}
+			e.Type = edgeT
+			e.Inverse = ref.Name
+			e.Ref = ref
+			e.Rel = Relation{
+				Type:    O2M,
+				fk:      ref.Rel.fk,
+				Table:   ref.Rel.Table,
+				Columns: ref.Rel.Columns,
+			}
 			// Edge schema contains a composite primary key, and it was not resolved in previous iterations.
 			if ant := fieldAnnotate(edgeT.Annotations); ant != nil && len(ant.ID) > 0 && len(edgeT.EdgeSchema.ID) == 0 {
-				r1, r2 := e.Rel.Columns[0], e.Rel.Columns[1]
+				r1, r2 := pRel.Columns[0], pRel.Columns[1]
 				if len(ant.ID) < 2 || ant.ID[0] != r1 || ant.ID[1] != r2 {
 					return fmt.Errorf(`edge schema primary key can only be defined on "id" or (%q, %q, ...) in the same order`, r1, r2)
 				}
@@ -585,7 +572,7 @@ func (g *Graph) edgeSchemas() error {
 						continue
 					}
 					c1, c2 := idx.Columns[0], idx.Columns[1]
-					r1, r2 := e.Rel.Columns[0], e.Rel.Columns[1]
+					r1, r2 := pRel.Columns[0], pRel.Columns[1]
 					if c1 == r1 && c2 == r2 || c1 == r2 && c2 == r1 {
 						return true
 					}
