@@ -18,6 +18,7 @@ import (
 	"unicode"
 
 	"ariga.io/atlas/sql/postgres"
+
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/entsql"
@@ -1086,6 +1087,23 @@ func (f Field) StructField() string {
 	return pascal(f.Name)
 }
 
+// TagTypes returns all struct-tag types of the field.
+func (f Field) TagTypes() []string {
+	tag := reflect.StructTag(f.StructTag)
+	fields := strings.FieldsFunc(f.StructTag, func(r rune) bool {
+		return r == ':' || unicode.IsSpace(r)
+	})
+	r := make([]string, 0, len(fields))
+	for _, name := range fields {
+		_, ok := tag.Lookup(name)
+		if !ok {
+			continue
+		}
+		r = append(r, name)
+	}
+	return r
+}
+
 // EnumNames returns the enum values of a field.
 func (f Field) EnumNames() []string {
 	names := make([]string, 0, len(f.Enums))
@@ -2094,7 +2112,7 @@ func (r Rel) String() string {
 }
 
 func structTag(name, tag string) string {
-	t := fmt.Sprintf(`json:"%s,omitempty"`, name)
+	t := fmt.Sprintf(`json:"%s,omitempty" sql:"%s"`, name, name)
 	if tag == "" {
 		return t
 	}
